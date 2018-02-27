@@ -87,6 +87,12 @@ function onMessage(evt)
       maincircle.appendChild(planex);
       // Wir merken uns die Icao Addresse um das Element wieder zu finden
       shownIcaos.push(data.Icao_addr);
+      if (data.Lat == 0){
+    	  planex.style.transform = "rotate(" + rotate + "deg)";
+    	  rotate = rotate + 20;
+    	  if(rotate > 360)
+    		  rotate = 1;
+      }
    }
 
    // Timestamp des letzten events auf dem Element setzten
@@ -165,7 +171,13 @@ function basics()
       document.getElementById('Heading').innerHTML = "Heading: " + Math.round(datasituation.GPSTrueCourse) + ' °';
       document.getElementById('AHRSMagHeading').innerHTML = "AHRSMagHeading: " + Math.round(datasituation.GPSTrueCourse) + ' °';
       document.getElementById('BaroPressureAltitude').innerHTML = "BaroPressureAltitude: " + Math.round(datasituation.BaroPressureAltitude) + ' ';
-          document.getElementById('GPSAltitude').innerHTML = "GPSAltitude: " + Math.round(datasituation.GPSAltitudeMSL) + ' ';
+      document.getElementById('GPSAltitude').innerHTML = "GPSAltitude: " + Math.round(datasituation.GPSAltitudeMSL) + ' ';
+      var GPSAlt = Math.round(datasituation.GPSAltitudeMSL);
+      var baroAlt = Math.round(datasituation.BaroPressureAltitude);
+      var qfe = Number(1013) - baroAlt / 27;
+      var qnh = qfe + GPSAlt / 27;
+      document.getElementById('QNH').innerHTML = "QNH: " + Math.round(qnh) + ' ';
+      document.getElementById('QFE').innerHTML = "QFE: " + Math.round(qfe) + ' ';
       document.getElementById('AHRSGLoad').innerHTML = "AHRSGLoad: " + Math.round(datasituation.AHRSGLoad) + ' G';
       Lat = datasituation.GPSLatitude;
       Long = datasituation.GPSLongitude;
