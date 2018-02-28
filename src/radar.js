@@ -1,10 +1,13 @@
 // Definieren einiger Basisvariablen
 var Lat;
 var Long;
+var myAlt;
 var stratuxip = "192.168.2.89";
 var trafficuri_ws = "ws://" + stratuxip + "/traffic";
 var statusuri = "http://" + stratuxip + "/getStatus";
 var situationuri = "http://" + stratuxip + "/getSituation";
+
+var showAllTraffic = 1;
 
 var rotate = 0;
 // Liste aller icao Addressen auf dem Radar
@@ -58,12 +61,23 @@ function onMessage(evt)
    var data = JSON.parse(evt.data);
 
 
-   // alles was weiter als 20 NM ist, verwerfen wir
+   // alles was weiter als 20 NM weg ist, verwerfen wir
     if(data.Position_valid){
             var distInMiles =  Math.round(Math.round(data.Distance) / 1000 / 1.852);
             if(distInMiles > 20){
                     return;
             }
+    }
+    
+    // alles was mehr als 1000ft über oder unter uns ist, ignoreieren wir
+    if(showAllTraffic == 0){
+    	if(data.Alt != 0){
+      	  var distanceToTarget = Math.abs(myAlt - data.Alt);
+      	  if(distanceToTarget > 1000){
+//      		console.log(" flight skipped: " + distanceToTarget);
+      		  return;
+      	  }
+        }
     }
 
 
@@ -87,11 +101,15 @@ function onMessage(evt)
       maincircle.appendChild(planex);
       // Wir merken uns die Icao Addresse um das Element wieder zu finden
       shownIcaos.push(data.Icao_addr);
+      // wir rotieren die Beschreibungen der ZTiele die als Kreis dargestellt werden. Wird übersichtlicher
       if (data.Lat == 0){
     	  planex.style.transform = "rotate(" + rotate + "deg)";
     	  rotate = rotate + 20;
-    	  if(rotate > 360)
+    	  if(rotate > 360){
     		  rotate = 1;
+    	  }
+    	  planex.setAttribute("erstesSignal", Math.round(data.SignalLevel/2)*2);
+    	  planex.setAttribute("letztesSignal", Math.round(data.SignalLevel/2)*2);
       }
    }
 
@@ -106,12 +124,47 @@ function onMessage(evt)
           // Fallback auf genulltes Hintergrundbild falls ein Flugzeug plötzlich keine Posiion mehr sendet
       planex.style.backgroundImage = "";
       planex.className = "planecircle";
-      planex.style.width = (Math.round(data.SignalLevel) * (-20));
-      planex.style.height = (Math.round(data.SignalLevel) * (-20));
-      planex.style.left = (400 - (Math.round(data.SignalLevel) * (-20) / 2));
-      planex.style.top = (400 - (Math.round(data.SignalLevel) * (-20) / 2));
-      planex.innerHTML = "<div class='planecirclelabel'>" + zeichen + "<br>" + data.Speed + " kts<br>" + Math.round(data.SignalLevel) + " dB</div>";
-
+      planex.style.width = (Math.round(data.SignalLevel/2)*2 * (-20));
+      planex.style.height = (Math.round(data.SignalLevel/2)*2 * (-20));
+      planex.style.left = (400 - (Math.round(data.SignalLevel/2)*2 * (-20) / 2));
+      planex.style.top = (400 - (Math.round(data.SignalLevel/2)*2 * (-20) / 2));
+      var altdiff = 0;
+      if(data.Alt != 0){
+    	  altdiff =data.Alt - myAlt;
+      }
+      planex.innerHTML = "<div class='planecirclelabel'>" + zeichen + "<br>" + data.Speed + " kts<br>" + Math.round(data.SignalLevel/2)*2 + " dB<br><b>"+altdiff+"feet</b></div>";
+     
+      var erstesSig = Number(planex.getAttribute("erstesSignal"));
+	  var lastSig =   Number(planex.getAttribute("letztesSignal"));
+	  var currSig =  Math.round(data.SignalLevel/2)*2;
+	 
+	  if(currSig<erstesSig){
+		  planex.setAttribute("erstesSignal", currSig);
+		  erstesSig=currSig;
+	  }
+	  
+	  if(data.Alt == 0){
+    	  planex.style.borderColor  = "gray";
+      }else{
+//    	  console.log("  Signals: lastSig" + lastSig + " cursig: " + currSig);
+    	  if((lastSig ) >  currSig){
+    		  planex.style.borderColor  = "green";
+    		  planex.setAttribute("letztesSignal",  currSig);
+    	  }
+    	  if((lastSig) <  currSig){
+    		  planex.style.borderColor  = "red";
+    		  planex.setAttribute("letztesSignal",  currSig);
+    	  }
+      }
+      
+	  var thickness = Math.abs(currSig-erstesSig) + 2;
+//	  console.log("  thickness: " + thickness);
+	  if(thickness < 2){
+		  thickness=2;
+	  }
+	  planex.style.borderWidth =  thickness +"px";
+	  
+	  
    }
    else
    {
@@ -135,19 +188,20 @@ function onMessage(evt)
 
 }
 
+// Alte Elemente vom Radar entfernen. Stratux WebService sendet die Daten noch 60 sekunden, nachdem das letzte signal gesehdet wurde.
+// 10 sekunden Später entfernen wir es. 
 function cleanUp(){
-           for (i = 0; i < shownIcaos.length; i++) {
-           var icao = shownIcaos[i];
-           var element12 = document.getElementById(icao);
-           if(element12){
-               var millis = Number(element12.getAttribute("millis"));
-               if(( +millis + 40000) < Date.now() ){
-                       element12.remove();
-                       shownIcaos.splice(i, 1);
-               }
+   for (i = 0; i < shownIcaos.length; i++) {
+   var icao = shownIcaos[i];
+   var element12 = document.getElementById(icao);
+   if(element12){
+       var millis = Number(element12.getAttribute("millis"));
+           if(( +millis + 2000) < Date.now() ){
+                   element12.remove();
+                   shownIcaos.splice(i, 1);
            }
        }
-
+   }
 }
 
 // Abfrage der eigenen Daten und drehen des Radars
@@ -172,6 +226,7 @@ function basics()
       document.getElementById('AHRSMagHeading').innerHTML = "AHRSMagHeading: " + Math.round(datasituation.GPSTrueCourse) + ' °';
       document.getElementById('BaroPressureAltitude').innerHTML = "BaroPressureAltitude: " + Math.round(datasituation.BaroPressureAltitude) + ' ';
       document.getElementById('GPSAltitude').innerHTML = "GPSAltitude: " + Math.round(datasituation.GPSAltitudeMSL) + ' ';
+      myAlt = Math.round(datasituation.BaroPressureAltitude);
       var GPSAlt = Math.round(datasituation.GPSAltitudeMSL);
       var baroAlt = Math.round(datasituation.BaroPressureAltitude);
       var qfe = Number(1013) - baroAlt / 27;
