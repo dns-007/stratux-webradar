@@ -2,12 +2,13 @@
 var Lat;
 var Long;
 var myAlt;
-var stratuxip = "192.168.2.89";
+var stratuxip = "192.168.10.1";
 var trafficuri_ws = "ws://" + stratuxip + "/traffic";
 var statusuri = "http://" + stratuxip + "/getStatus";
 var situationuri = "http://" + stratuxip + "/getSituation";
 
 var showAllTraffic = 1;
+
 
 var rotate = 0;
 // Liste aller icao Addressen auf dem Radar
