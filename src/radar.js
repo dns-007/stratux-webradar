@@ -7,7 +7,7 @@ var trafficuri_ws = "ws://" + stratuxip + "/traffic";
 var statusuri = "http://" + stratuxip + "/getStatus";
 var situationuri = "http://" + stratuxip + "/getSituation";
 
-var showAllTraffic = 1;
+var showAllTraffic = 0;
 
 
 var rotate = 0;
@@ -125,6 +125,7 @@ function onMessage(evt)
           // Fallback auf genulltes Hintergrundbild falls ein Flugzeug plötzlich keine Posiion mehr sendet
       planex.style.backgroundImage = "";
       planex.className = "planecircle";
+      // Um das display zu beruhigen, nehmen wir die Signalstärke in 2er Schritten
       planex.style.width = (Math.round(data.SignalLevel/2)*2 * (-20));
       planex.style.height = (Math.round(data.SignalLevel/2)*2 * (-20));
       planex.style.left = (400 - (Math.round(data.SignalLevel/2)*2 * (-20) / 2));
@@ -132,8 +133,12 @@ function onMessage(evt)
       var altdiff = 0;
       if(data.Alt != 0){
     	  altdiff =data.Alt - myAlt;
+		if(altdiff > 0){
+			altdiff = "+" + altdiff;
+		}
+
       }
-      planex.innerHTML = "<div class='planecirclelabel'>" + zeichen + "<br>" + data.Speed + " kts<br>" + Math.round(data.SignalLevel/2)*2 + " dB<br><b>"+altdiff+"feet</b></div>";
+      planex.innerHTML = "<div class='planecirclelabel'>" +altdiff+"feet</b></div>";
      
       var erstesSig = Number(planex.getAttribute("erstesSignal"));
 	  var lastSig =   Number(planex.getAttribute("letztesSignal"));
@@ -182,7 +187,11 @@ function onMessage(evt)
       planex.style.height = 140;
       planex.style.backgroundImage = "url('img/plane_red.svg')";
       planex.style.transform = "rotate(" + data.Track + "deg)";
-      planex.innerHTML = "<div class='planeslabel'>" + zeichen + "<br>" + data.Speed + " kts<br>" + data.Alt + " ft</div>";
+      altdiff =data.Alt - myAlt;
+      if(altdiff > 0){
+          altdiff = "+" + altdiff;
+      }
+      planex.innerHTML = "<div class='planeslabel'>" + zeichen + "<br>" + data.Speed + " kts<br>" + altdiff + " ft</div>";
    }
 
 
@@ -213,7 +222,7 @@ function basics()
    requeststatus.onload = function()
    {
       var datastatus = JSON.parse(this.response);
-      document.getElementById('Version').innerHTML = "Version: " + datastatus.Version;
+//      document.getElementById('Version').innerHTML = "Version: " + datastatus.Version;
       document.getElementById('GPS').innerHTML = "GPS Accouracy: " + datastatus.GPS_position_accuracy + ' m';
    }
    requeststatus.send();
@@ -222,7 +231,7 @@ function basics()
    requestsituation.onload = function()
    {
       var datasituation = JSON.parse(this.response);
-      document.getElementById('Groundspeed').innerHTML = "Groundspeed: " + Math.round(datasituation.GPSGroundSpeed) + ' kts';
+      document.getElementById('Groundspeed').innerHTML = "Groundspeed: " + Math.round((datasituation.GPSGroundSpeed*1.852)) + ' km/h';
       document.getElementById('Heading').innerHTML = "Heading: " + Math.round(datasituation.GPSTrueCourse) + ' °';
       document.getElementById('AHRSMagHeading').innerHTML = "AHRSMagHeading: " + Math.round(datasituation.GPSTrueCourse) + ' °';
       document.getElementById('BaroPressureAltitude').innerHTML = "BaroPressureAltitude: " + Math.round(datasituation.BaroPressureAltitude) + ' ';
