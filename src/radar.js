@@ -62,10 +62,10 @@ function onMessage(evt)
    var data = JSON.parse(evt.data);
 
 
-   // alles was weiter als 20 NM weg ist, verwerfen wir
+   // alles was weiter als 2.5 NM weg ist, verwerfen wir
     if(data.Position_valid){
             var distInMiles =  Math.round(Math.round(data.Distance) / 1000 / 1.852);
-            if(distInMiles > 20){
+            if(distInMiles > 2.5){
                     return;
             }
     }
@@ -122,6 +122,12 @@ function onMessage(evt)
    // Flugzeuge ohne Positionsangaben die Kreise anhand ihrer Stärke erhalten
    if (data.Lat == 0)
    {
+	   if(data.Alt == 0){
+		   if(data.SignalLevel < -20){
+			   return;
+		   }
+	   }
+	   
           // Fallback auf genulltes Hintergrundbild falls ein Flugzeug plötzlich keine Posiion mehr sendet
       planex.style.backgroundImage = "";
       planex.className = "planecircle";
@@ -138,7 +144,7 @@ function onMessage(evt)
 		}
 
       }
-      planex.innerHTML = "<div class='planecirclelabel'>" +altdiff+"feet</b></div>";
+      planex.innerHTML = "<div class='planecirclelabel'><h3><b>" +altdiff+"feet</b></h3></div>";
      
       var erstesSig = Number(planex.getAttribute("erstesSignal"));
 	  var lastSig =   Number(planex.getAttribute("letztesSignal"));
@@ -176,8 +182,8 @@ function onMessage(evt)
    {
       // Flugzeuge mit Höhenangaben, die positioniert werden
       planex.className = "planes";
-      abstandlat = Math.round((Lat - data.Lat) * 1000);
-      abstandlng = Math.round((Long - data.Lng) * 1000);
+      abstandlat = Math.round((Lat - data.Lat) * 8000);
+      abstandlng = Math.round((Long - data.Lng) * 8000);
       posleft = (350 - abstandlng);
       postop = (350 + abstandlat);
       planex.style.left = posleft;
